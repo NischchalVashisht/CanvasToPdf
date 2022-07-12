@@ -1,0 +1,87 @@
+public class TaskManagerChart {
+     @AuraEnabled
+    public static List<DataSet> getAllTasksByStatus(){
+        List<AggregateResult> result =  [Select Count(Id) cnt, Name from Account group by Name ];
+        List<DataSet> dataSet = new List<DataSet>();
+        for(AggregateResult ar:result){
+            String status =  (String)ar.get('Name') ;
+            Integer total =(Integer)ar.get('cnt'); 
+            dataSet.add(new DataSet(status ,total));
+            
+        }
+        System.debug('dataSet'+dataSet);
+        return dataSet ; 
+    }
+     
+    public static PageReference send(){return null;}
+    
+    
+    public class DataSet{
+        public DataSet(String label ,Integer count){
+            this.label  = label ; 
+            this.count = count ;
+        }
+        @AuraEnabled
+        public String label {get;set;}
+        @AuraEnabled
+        public Integer  count {get;set;}
+        
+        
+    }
+    
+  @AuraEnabled
+  public static list<Id> saveFiles(list	<Object> filesToInsert, String recordId){
+       System.debug('filesToInsert '+filesToInsert);
+       System.debug('recordId '+recordId);
+      
+      list<Id> lstCntVerIds = new list<Id>();
+      List<ContentVersion> lstVersionsToInsert = new List<ContentVersion>();
+      for (Object file : filesToInsert) {
+           System.debug('Inside Object '+file);
+          FileInfo fData = (FileInfo)JSON.deserialize(JSON.serialize(file), FileInfo.class);
+          ContentVersion objCntVersion = new ContentVersion();
+          objCntVersion.PathOnClient = fData.Title;
+          objCntVersion.Title = fData.Title;
+          objCntVersion.VersionData = fData.VersionData;
+          lstVersionsToInsert.add(objCntVersion);
+      }
+
+      list<Database.saveResult> res = Database.insert(lstVersionsToInsert);
+      for (Database.SaveResult saveResult : res) {
+          if(saveResult.isSuccess()) {
+              lstCntVerIds.add(saveResult.getId());
+          }
+      }
+      createContentLink(lstCntVerIds,recordId);
+      return lstCntVerIds;
+ }
+
+ private static List<ContentDocumentLink> createContentLink(List<Id> contentVersionId, String recordId) {
+   if (contentVersionId.size() < 1 || recordId == null) { return null; } 
+        
+        List<ContentVersion> listOfCv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id IN : contentVersionId];
+        List<ContentDocumentLink> listOfCDL = new List<ContentDocumentLink>();
+        
+        for(ContentVersion tempCv : listOfCv){
+            ContentDocumentLink cdl = new ContentDocumentLink();
+            cdl.ContentDocumentId = tempCv.ContentDocumentId;
+            cdl.LinkedEntityId = recordId;
+// ShareType is either 'V', 'C', or 'I'
+// V = Viewer, C = Collaborator, I = Inferred
+            cdl.ShareType = 'V';
+            listOfCDL.add(cdl);
+          } 
+        try {
+            insert listOfCDL;
+            return listOfCDL;
+        } catch(DMLException e) {
+            System.debug(e);
+            return null;
+          }
+  }      
+  public class FileInfo {
+     public String Title;
+    public Blob VersionData;
+  }
+
+}
