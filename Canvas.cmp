@@ -1,0 +1,22 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId" 
+                access="global" controller="TaskManagerChart" >
+   
+    <ltng:require scripts="{!$Resource.Chart}"  
+              afterScriptsLoaded="{!c.chart}"/>
+    <ltng:require scripts="{!$Resource.jsPDF}"  
+              afterScriptsLoaded="{!c.pdf}"/>
+    <ltng:require scripts="{!$Resource.domtoimage}"  
+              afterScriptsLoaded="{!c.image}"/>
+    <aura:attribute name="objectList" type="List" />
+    <div class="container"> 
+        <button onclick="{!c.downloadPDF}" style="float:right;">
+            Download PDF
+        </button>
+        <!-- page 1 --> 
+        <div id="chartdiv">
+        <canvas aura:id="chart" id="chart" width="950" height="250"></canvas>
+        </div>
+        <canvas aura:id="chart1" id="chart1" width="950" height="250"></canvas>
+        <!-- page 2 -->
+    </div> 
+</aura:component>
